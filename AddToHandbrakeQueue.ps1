@@ -13,4 +13,4 @@ $FilePath | ForEach-Object{
     $FileToQueue | Out-File -FilePath (Join-Path -Path $QueuePath -ChildPath $HashedFilename)
 }
 
-#Pause 
+Pause 
