@@ -12,9 +12,6 @@ $HandBrakeExe = "C:\Scripts\HandBrakeBatcher\HandBrakeCLI\HandBrakeCLI.exe"
 $PresetFile = "C:\Scripts\HandBrakeBatcher\H265HandbrakePreset.json"
 $PresetName = "Apple1080pHEVCq38"
 
-$filecount = 0
-$FileList = Get-ChildItem -Path $QueuePath | Sort-Object LastWriteTime
-
 Function Get-HandbrakeProgress {
     param(
         [Parameter(Mandatory, ValueFromPipeline)]
@@ -52,6 +49,9 @@ Function Get-HandbrakeProgress {
 }
 
 
+$filecount = 0
+$FileList = Get-ChildItem -Path $QueuePath | Sort-Object LastWriteTime
+
 
 Write-Host ""
 Write-Host ""
@@ -72,7 +72,7 @@ while ($null -ne $FileList) {
     $filecount++
 
     $SourceFile = $FileToProcess.FullName
-    $DestinationFile = (Join-Path -Path $DestinationPath -ChildPath ($FileToProcess.BaseName)) + ".mp4" #Test when powershell is fixed. TODO get name without extension!!!!!
+    $DestinationFile = (Join-Path -Path $DestinationPath -ChildPath ($FileToProcess.BaseName)) + ".mp4"
 
     Write-Progress -Id 0 -Activity "Handbrake Batch Video Conversion in Progress" -Status "Processed $filecount of $totalFiles" -PercentComplete ($filecount / $totalFiles * 100)
     Write-Host "-------------------------------------------------------------------------------"
@@ -83,15 +83,12 @@ while ($null -ne $FileList) {
     Write-Host "          $($FileList.Count - 1) files remaining"
     Write-Host "-------------------------------------------------------------------------------"
 
-    #"D:\temp\HandBrakeBatcher\HandBrakeCLI.exe" --preset-import-file  -Z "PaulCustomFast1080p30" -i "$()" -o $DestinationFile
-    #Start-Process $HandBrakeExe -ArgumentList "--preset-import-file `"C:\Scripts\HandBrakeBatcher\PaulsHandbrakePreset.json`" -Z `"PaulCustomFast1080p30`" -i `"$SourceFile`" -o `"$DestinationFile`" " -Wait #-NoNewWindow #--verbose=0
     &$HandBrakeExe --preset-import-file $PresetFile -Z $PresetName -i "$SourceFile" -o "$DestinationFile" 2> $null | Get-HandbrakeProgress
 
     Remove-Item $FileList[0].FullName
     # Refresh the FileList incase more files have been queued.
     $FileList = Get-ChildItem -Path $QueuePath | Sort-Object LastWriteTime
 }
-
 
 Write-Host ""
 Write-Host ""
