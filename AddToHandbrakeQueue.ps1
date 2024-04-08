@@ -12,5 +12,3 @@ $FilePath | ForEach-Object{
     $HashedFilename = (Get-FileHash -InputStream ([IO.MemoryStream]::new([byte[]][char[]]$FileToQueue)) -Algorithm SHA256).Hash
     $FileToQueue | Out-File -FilePath (Join-Path -Path $QueuePath -ChildPath $HashedFilename)
 }
-
-Pause 
