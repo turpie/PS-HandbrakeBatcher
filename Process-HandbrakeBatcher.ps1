@@ -88,7 +88,7 @@ while ($null -ne $FileList) {
     &$HandBrakeExe --preset-import-file $PresetFile -Z $PresetName -i "$SourceFile" -o "$DestinationFile" 2> $null | Get-HandbrakeProgress
 
     Remove-Item $FileList[0].FullName
-    # Refresh the FileList
+    # Refresh the FileList incase more files have been queued.
     $FileList = Get-ChildItem -Path $QueuePath | Sort-Object LastWriteTime
 }
 
