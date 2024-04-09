@@ -83,7 +83,7 @@ while ($null -ne $FileList) {
     Write-Host "          $($FileList.Count - 1) files remaining"
     Write-Host "-------------------------------------------------------------------------------"
 
-    &$HandBrakeExe --preset-import-file $PresetFile -Z $PresetName -i "$SourceFile" -o "$DestinationFile" 2> $null | Get-HandbrakeProgress
+    &$HandBrakeExe --preset-import-file $PresetFile -Z $PresetName -i "$SourceFile" -o "$DestinationFile" 2>(Join-Path -Path $LogPath -ChildPath "Error.log") | Get-HandbrakeProgress
 
     Remove-Item $FileList[0].FullName
     # Refresh the FileList incase more files have been queued.
