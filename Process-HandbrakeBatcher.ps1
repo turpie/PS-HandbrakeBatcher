@@ -1,6 +1,7 @@
 .\Update-HandbrakeCLI.ps1 # Update HandbrakeCLI before processing.
 
 $QueuePath = "C:\Scripts\HandBrakeBatcher\Queue"
+$LogPath = "C:\Scripts\HandBrakeBatcher\Logs"
 $DestinationPath = "D:\Conversions"
 $HandBrakeExe = "C:\Scripts\HandBrakeBatcher\HandBrakeCLI\HandBrakeCLI.exe"
 
