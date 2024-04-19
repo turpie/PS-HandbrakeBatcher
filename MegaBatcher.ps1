@@ -85,7 +85,8 @@ $FileList += Get-ChildItem -Path $SourcePath -File -Filter "*.mp4" -Recurse
 # over time there will be a greater chance of clashes. 
 # TODO: Add a smarter system of avoiding duplicated work.
 if ($env:computername -eq "RENDERBOT") {
-    $FileList = $FileList | Sort-Object #-Descending
+    Write-LogMessage "Sorting by Ascending FullName"
+    $FileList = $FileList | Sort-Object -Property FullName #-Descending
 }
 else {
     Write-LogMessage "Using RANDOM sort order."
