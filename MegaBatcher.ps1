@@ -110,7 +110,7 @@ $FileList | ForEach-Object {
     $SourceFile = $FileToProcess.FullName
 
     if (Test-Path $SourceFile) {
-        $ConvertedFile = (Join-Path -Path $TempPath -ChildPath ($FileToProcess.Name))
+        $ConvertedFile = (Join-Path -Path $TempPath -ChildPath ((Get-Date -Format "yyyy-MM-dd HHmm") + $FileToProcess.Name))
     
         $MediaInfo = Get-MediaInfo -Path $SourceFile  # check the videos current format.
         # If it isn't already HEVC/H265 then Handbrake it.
