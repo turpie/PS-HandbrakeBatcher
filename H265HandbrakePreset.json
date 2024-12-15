@@ -116,7 +116,7 @@
       "VideoTune": "",
       "VideoProfile": "main10",
       "VideoLevel": "auto",
-      "VideoOptionExtra": "strong-intra-smoothing=0:rect=0:aq-mode=1:rd=4:psy-rd=0.75:psy-rdoq=4.0:rdoq-level=1:rskip=2:pools=2:threads=2:frame-threads=2",
+      "VideoOptionExtra": "strong-intra-smoothing=0:rect=0:aq-mode=1:rd=4:psy-rd=0.75:psy-rdoq=4.0:rdoq-level=1:rskip=2:pools=2:threads=1:frame-threads=1",
       "VideoQualityType": 2,
       "VideoQualitySlider": 26,
       "VideoMultiPass": true,
