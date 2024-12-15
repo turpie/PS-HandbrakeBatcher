@@ -116,35 +116,31 @@ while ($null -ne $FileList) {
     Write-Host "-------------------------------------------------------------------------------"
     #TODO Validate the destination file before removing queuefile
     #      maybe move queuefile to a new directory
-    if(Test-Path -Path $DestinationFile) {
+    if (Test-Path -Path $DestinationFile) {
         $MediaInfo = Get-MediaInfo -Path $DestinationFile
-        if( $MediaInfo.Duration -gt 0){
+        if ( $MediaInfo.Duration -gt 0) {
             # Destination File exists and seems to be a valid video file, so delete the queue file.
             Add-Content -Path (Join-Path -Path $LogPath -ChildPath "Completed.log") -Value (Get-Content -Path $FileList[0].FullName)
-        }else{
+        }
+        else {
             # Destination file seems invalid so delete it and keep queue file to try again later.
             Remove-Item $DestinationFile
         }
     }
-    # Check current time and run the Night profile for higher performance
-    $currentTime = Get-Date
-    if(($currentTime.Hour -ge 23) -or ($currentTime.Hour -le 7)){
-        &$HandBrakeExe --preset-import-file $PresetFileNight -Z $PresetName -i "$SourceFile" -o "$DestinationFile" 2>(Join-Path -Path $LogPath -ChildPath "Error.log") | Get-HandbrakeProgress
+    &$HandBrakeExe --preset-import-file $PresetFileNight -Z $PresetName -i "$SourceFile" -o "$DestinationFile" 2>(Join-Path -Path $LogPath -ChildPath "Error.log") | Get-HandbrakeProgress
 
-    }else {
-        &$HandBrakeExe --preset-import-file $PresetFile -Z $PresetName -i "$SourceFile" -o "$DestinationFile" 2>(Join-Path -Path $LogPath -ChildPath "Error.log") | Get-HandbrakeProgress
-    }
 
     #TODO Validate the destination file before removing queuefile
     #      maybe move queuefile to a new directory
-    if(Test-Path -Path $DestinationFile) {
+    if (Test-Path -Path $DestinationFile) {
         $MediaInfo = Get-MediaInfo -Path $DestinationFile
-        if( $MediaInfo.Duration -gt 0){
+        if ( $MediaInfo.Duration -gt 0) {
             # Destination File exists and seems to be a valid video file, so delete the queue file.
             Add-Content -Path (Join-Path -Path $LogPath -ChildPath "Completed.log") -Value (Get-Content -Path $FileList[0].FullName)
             Write-Host "Processing completed, removing queue file."
             Remove-Item $FileList[0].FullName
-        }else{
+        }
+        else {
             # Destination file seems invalid so delete it and keep queue file to try again later.
             Write-Host "Destination file seems invalid so delete it and keep queue file to try again later."
             Write-Host "  DestinationFile name=" $DestinationFile
@@ -155,7 +151,8 @@ while ($null -ne $FileList) {
             Write-Host "  New Lastwritetime:" (Get-Item -Path $FileList[0].FullName).LastWriteTime
             Move-Item -Path $FileList[0].FullName -Destination $QueueRejectsPath
         }
-    }else{
+    }
+    else {
         Write-Host "************* where did the destination file go!!!!!!!!!!!!!!!!!!!! *************"
         Write-Host "  DestinationFile name=" $DestinationFile
         Write-Host "  Queue filename: " $FileList[0].FullName
@@ -163,7 +160,7 @@ while ($null -ne $FileList) {
         (Get-Item -Path $FileList[0].FullName).LastWriteTime = Get-Date
         Write-Host "  New Lastwritetime:" (Get-Item -Path $FileList[0].FullName).LastWriteTime
         Move-Item -Path $FileList[0].FullName -Destination $QueueRejectsPath
-}
+    }
     # Refresh the FileList incase more files have been queued.
     $FileList = Get-ChildItem -Path $QueuePath | Sort-Object LastWriteTime
 }
