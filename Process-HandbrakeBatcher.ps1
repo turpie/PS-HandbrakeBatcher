@@ -17,6 +17,26 @@ $PresetFile = "C:\Scripts\HandBrakeBatcher\H265HandbrakePreset.json"
 $PresetFileNight = "C:\Scripts\HandBrakeBatcher\H265HandbrakePresetNight.json"
 $PresetName = "Apple1080pHEVCq38"
 
+function Start-SleepUntil($waketime) {
+    $currentTime = Get-Date
+    $snoozeTime = New-TimeSpan -Start $currentTime -End $waketime
+    Write-Host "$($currentTime.TolongTimeString()) - Sleeping until" $processingStartTime
+ 
+    while ($waketime -gt $currentTime) {
+        $timeRemaing = New-TimeSpan -Start $currentTime -End $waketime
+        $percent = ($snoozeTime.TotalSeconds - $timeRemaing.TotalSeconds) / $snoozeTime.TotalSeconds * 100
+        $ProgressArguments = @{
+            Activity         = "Sleeping"
+            Status           = "Sleeping for $($timeRemaing.Hours) Hours $($timeRemaing.Minutes) Minutes $($timeRemaing.Seconds) Seconds "
+            SecondsRemaining = $timeRemaing.TotalSeconds 
+            PercentComplete  = $percent
+        }
+        Write-Progress @ProgressArguments
+        [System.Threading.Thread]::Sleep(500)
+        $currentTime = Get-Date
+    }
+    Write-Progress -Activity "Sleeping" -Status "Waking up... " -SecondsRemaining 0 -Completed
+}
 Function Get-HandbrakeProgress {
     param(
         [Parameter(Mandatory, ValueFromPipeline)]
@@ -78,6 +98,13 @@ while ($null -ne $FileList) {
 
     $SourceFile = $FileToProcess.FullName
     $DestinationFile = (Join-Path -Path $DestinationPath -ChildPath ($FileToProcess.BaseName)) + ".mp4"
+
+    # Check current time and run the Night profile for higher performance
+    $currentTime = Get-Date
+    if (($currentTime.Hour -lt 23) -and ($currentTime.Hour -ge 6)) {
+        $processingStartTime = Get-Date -Hour 23 -Minute 59 -Second 0
+        Start-SleepUntil ($processingStartTime)
+    }
 
     Write-Progress -Id 0 -Activity "Handbrake Batch Video Conversion in Progress" -Status "Processed $filecount of $totalFiles" -PercentComplete ($filecount / $totalFiles * 100)
     Write-Host "-------------------------------------------------------------------------------"
