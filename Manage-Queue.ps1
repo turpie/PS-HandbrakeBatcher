@@ -52,7 +52,7 @@ $layout = New-SpectreLayout -Name "root" -Rows @(
     (
         New-SpectreLayout -Name "content" -Ratio 10 -Columns @(
             (
-                New-SpectreLayout -Name "filelist" -Ratio 2 -Data "empty"
+                New-SpectreLayout -Name "filelist" -Ratio 4 -Data "empty"
             ),
             (
                 New-SpectreLayout -Name "preview" -Ratio 4 -Data "empty"
