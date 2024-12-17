@@ -1,3 +1,27 @@
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    Write-Host "This script requires PowerShell 7."
+
+    # Check if pwsh is available
+    if (-not (Get-Command pwsh -ErrorAction SilentlyContinue)) {
+        Write-Host "PowerShell 7 is not installed. Please install it from https://aka.ms/powershell."
+        exit 1
+    }
+
+    Write-Host "Relaunching in PowerShell 7..."
+    $scriptPath = $MyInvocation.MyCommand.Definition
+    Start-Process -NoNewWindow -Wait -FilePath "pwsh" -ArgumentList "-File", $scriptPath
+    exit
+}
+
+
+<# 
+    TODO: add delete code
+        check for missing source video file
+
+ #>
+
+
+
 
 Import-Module PwshSpectreConsole # Module for console UI
 $QueuePath = "C:\Scripts\HandBrakeBatcher\Queue"
