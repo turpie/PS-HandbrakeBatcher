@@ -75,7 +75,7 @@ function Get-FileListPanel {
         $SelectedFile
     )
     $fileList = $Files | ForEach-Object {
-        $name = (Get-ChildItem -LiteralPath (Get-Content $_.FullName)).Name
+        $name = Get-SpectreEscapedText -Text  (Get-ChildItem -LiteralPath (Get-Content $_.FullName)).Name
 
         if ($_.Name -eq $SelectedFile.Name) {
             $name = "[Turquoise2]$($name)[/]"
