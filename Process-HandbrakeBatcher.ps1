@@ -1,21 +1,25 @@
-.\Update-HandbrakeCLI.ps1 # Update HandbrakeCLI before processing.
+param(
+    [ValidateSet("Sleep", "HighLow", "Low", "High")]
+    [string[]]$CPUMode = "High",
+    [string]$QueuePath = "C:\Scripts\HandBrakeBatcher\Queue",
+    [string]$QueueRejectsPath = "C:\Scripts\HandBrakeBatcher\QueueRejects",
+    [string]$LogPath = "C:\Scripts\HandBrakeBatcher\Logs",
+    [string]$DestinationPath = "D:\Conversions",
+    [string]$HandBrakeExe = "C:\Scripts\HandBrakeBatcher\HandBrakeCLI\HandBrakeCLI.exe",
+    [string]$PresetFileLowCPU = "C:\Scripts\HandBrakeBatcher\H265HandbrakePresetLowCPU.json",
+    [string]$PresetFileHighCPU = "C:\Scripts\HandBrakeBatcher\H265HandbrakePresetHighCPU.json",
+    [string]$PresetName = "Apple1080pHEVCq38"
+)
+
+# TODO:
+# 1. Add parameters for Start and End times for the Sleep and HighLow modes.
+# 2. Add help output for the script.
+# 3. Document the parameters.
+
+. $PSScriptRoot\Update-HandbrakeCLI.ps1 # Update HandbrakeCLI before processing.
 
 Import-Module -Name Get-MediaInfo
-
-$QueuePath = "C:\Scripts\HandBrakeBatcher\Queue"
-$QueueRejectsPath = "C:\Scripts\HandBrakeBatcher\QueueRejects"
-$LogPath = "C:\Scripts\HandBrakeBatcher\Logs"
-$DestinationPath = "D:\Conversions"
-$HandBrakeExe = "C:\Scripts\HandBrakeBatcher\HandBrakeCLI\HandBrakeCLI.exe"
-
-# Original H264 profile
-#$PresetFile = "C:\Scripts\HandBrakeBatcher\HandbrakePreset.json"
-#$PresetName = "CustomFast1080p30"
-
-# Newer H265/HEVC profile
-$PresetFile = "C:\Scripts\HandBrakeBatcher\H265HandbrakePreset.json"
-$PresetFileNight = "C:\Scripts\HandBrakeBatcher\H265HandbrakePresetNight.json"
-$PresetName = "Apple1080pHEVCq38"
+$PSStyle.Progress.View = 'Classic'
 
 function Start-SleepUntil($waketime) {
     $currentTime = Get-Date
@@ -101,9 +105,21 @@ while ($null -ne $FileList) {
 
     # Check current time and run the Night profile for higher performance
     $currentTime = Get-Date
-    if (($currentTime.Hour -lt 23) -and ($currentTime.Hour -ge 6)) {
-        $processingStartTime = Get-Date -Hour 23 -Minute 59 -Second 0
-        Start-SleepUntil ($processingStartTime)
+    $currentPreset = $PresetFileHighCPU
+    switch ($CPUMode) {
+        "Low" { $currentPreset = $PresetFileLowCPU }
+        "High" { $currentPreset = $PresetFileHighCPU }
+        "HighLow" {
+            if (($currentTime.Hour -lt 23) -and ($currentTime.Hour -ge 6)) {
+                $currentPreset = $PresetFileLowCPU 
+            }
+        }    
+        "Sleep" {  
+            if (($currentTime.Hour -lt 23) -and ($currentTime.Hour -ge 6)) {
+                $processingStartTime = Get-Date -Hour 23 -Minute 59 -Second 0
+                Start-SleepUntil ($processingStartTime)
+            }    
+        }
     }
 
     Write-Progress -Id 0 -Activity "Handbrake Batch Video Conversion in Progress" -Status "Processed $filecount of $totalFiles" -PercentComplete ($filecount / $totalFiles * 100)
@@ -127,7 +143,7 @@ while ($null -ne $FileList) {
             Remove-Item $DestinationFile
         }
     }
-    &$HandBrakeExe --preset-import-file $PresetFileNight -Z $PresetName -i "$SourceFile" -o "$DestinationFile" 2>(Join-Path -Path $LogPath -ChildPath "Error.log") | Get-HandbrakeProgress
+    &$HandBrakeExe --preset-import-file $currentPreset -Z $PresetName -i "$SourceFile" -o "$DestinationFile" 2>(Join-Path -Path $LogPath -ChildPath "Error.log") | Get-HandbrakeProgress
 
 
     #TODO Validate the destination file before removing queuefile
