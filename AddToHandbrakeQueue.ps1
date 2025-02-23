@@ -24,16 +24,21 @@ function Queue-File {
 
 $videoExtensions = @(".mp4", ".mkv", ".avi", ".mov", ".wmv")      
 $FilePath | ForEach-Object{
+    "Checking: $_"
     # if the file is a directory, queue all files in the directory
     if (Test-Path -Path $_ -PathType Container) {
+        "Queueing all files in directory $_"
         # only queue video files
         Get-ChildItem -Path $_ -Recurse -File | Where-Object { $videoExtensions -contains $_.Extension } | ForEach-Object {
             Queue-File -FileToQueue $_.FullName
         }
     }
     else {
-        if ($videoExtensions -contains (Get-Item $_).Extension) {
+        "Queueing file $_"
+        if ($videoExtensions -contains (Get-ChildItem -LiteralPath $_).Extension) {
             Queue-File -FileToQueue $_
+        }else{
+            Write-Host "File $_ is not a video file, skipping." (Get-ChildItem -LiteralPath $_).Extension "_"
         }
     }
 } 
