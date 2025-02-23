@@ -13,15 +13,11 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
     exit
 }
 
-
 <# 
     TODO: add delete code
         check for missing source video file
 
  #>
-
-
-
 
 Import-Module PwshSpectreConsole # Module for console UI
 $QueuePath = "C:\Scripts\HandBrakeBatcher\Queue"
@@ -39,7 +35,7 @@ $FileList | ForEach-Object {
         Name      = $FileToProcess.Name
         QueueFile = $_.FullName
     }
-    $QueueData.Add( $QueueItemDetail)
+    Write-Host $QueueData.Add( $QueueItemDetail) $_.Name
 }
 #$QueueData 
 
@@ -72,10 +68,15 @@ function Get-TitlePanel {
 function Get-FileListPanel {
     param (
         $Files,
-        $SelectedFile
+        $SelectedFile,
+        $DisplayWidth = 50
     )
     $fileList = $Files | ForEach-Object {
-        $name = Get-SpectreEscapedText -Text  (Get-ChildItem -LiteralPath (Get-Content $_.FullName)).Name
+        $fileName = ((Get-ChildItem -LiteralPath (Get-Content $_.FullName)).Name)
+        if ($fileName.Length -gt $DisplayWidth) {
+            $fileName = $fileName.Substring(0, $DisplayWidth)
+        }
+        $name = Get-SpectreEscapedText -Text $fileName
 
         if ($_.Name -eq $SelectedFile.Name) {
             $name = "[Turquoise2]$($name)[/]"
@@ -115,9 +116,8 @@ function Get-CommandPanel {
     param (
         $Debug
     )
-    return "$Debug Type '↓', '↑' to navigate the file list, 'u' or 'd' to change position, 'X' to delete. 'W' to write new queue order" | Format-SpectreAligned -HorizontalAlignment Center -VerticalAlignment Middle | Format-SpectrePanel -Expand
+    return "$Debug Type up and down arrows to navigate the file list, u or d to change position, X to delete. W to write new queue order" | Format-SpectreAligned -HorizontalAlignment Center -VerticalAlignment Middle | Format-SpectrePanel -Expand
 }
-
 
 function Get-LastKeyPressed {
     $lastKeyPressed = $null
@@ -184,9 +184,13 @@ Invoke-SpectreLive -Data $layout -ScriptBlock {
             }
         }
 
+        # Calculate layout sizes, so that we can truncate filenames in the file list rather than wrapping them.
+        $layoutSize = $layout | Get-SpectreRenderableSize
+        $fileListWidth = [math]::Truncate(($layoutSize.Width /2 ) - 4)
+
         # Generate new data
         $titlePanel = Get-TitlePanel
-        $fileListPanel = Get-FileListPanel -Files $fileList -SelectedFile $selectedFile
+        $fileListPanel = Get-FileListPanel -Files $fileList -SelectedFile $selectedFile -DisplayWidth $fileListWidth
         $previewPanel = Get-PreviewPanel -SelectedFile $selectedFile
         $commandPanel = Get-CommandPanel -Debug $lastKeyPressed.Key
 
