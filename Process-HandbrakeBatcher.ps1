@@ -1,6 +1,6 @@
 param(
     [ValidateSet("Sleep", "HighLow", "Low", "High")]
-    [string[]]$CPUMode = "High",
+    [string[]]$CPUMode = "Sleep",
     [string]$QueuePath = "C:\Scripts\HandBrakeBatcher\Queue",
     [string]$QueueRejectsPath = "C:\Scripts\HandBrakeBatcher\QueueRejects",
     [string]$LogPath = "C:\Scripts\HandBrakeBatcher\Logs",
