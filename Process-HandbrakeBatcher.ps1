@@ -8,18 +8,13 @@ param(
     [string]$HandBrakeExe = "C:\Scripts\HandBrakeBatcher\HandBrakeCLI\HandBrakeCLI.exe",
     [string]$PresetFileLowCPU = "C:\Scripts\HandBrakeBatcher\H265HandbrakePresetLowCPU.json",
     [string]$PresetFileHighCPU = "C:\Scripts\HandBrakeBatcher\H265HandbrakePresetHighCPU.json",
-    [string]$PresetName = "Apple1080pHEVCq38"
+    [string]$PresetName = "Apple1080pHEVCq38",
+    [switch]$DaemonMode = $true
 )
-
-# TODO:
-# 1. Add parameters for Start and End times for the Sleep and HighLow modes.
-# 2. Add help output for the script.
-# 3. Document the parameters.
 
 . $PSScriptRoot\Update-HandbrakeCLI.ps1 # Update HandbrakeCLI before processing.
 
 Import-Module -Name Get-MediaInfo
-$PSStyle.Progress.View = 'Classic'
 
 function Start-SleepUntil($waketime) {
     $currentTime = Get-Date
@@ -78,120 +73,140 @@ Function Get-HandbrakeProgress {
 }
 
 
-$filecount = 0
-$FileList = Get-ChildItem -Path $QueuePath | Sort-Object LastWriteTime
+# Main processing loop
+do {
+    $filecount = 0
+    $FileList = Get-ChildItem -Path $QueuePath | Sort-Object LastWriteTime
+
+    if ($FileList.Count -eq 0) {
+        if ($DaemonMode) {
+            Write-Host "No files found in the queue. Waiting for new files..."
+            Start-Sleep -Seconds 60
+            continue
+        }
+        else {
+            break
+        }
+    }
 
 
-Write-Host ""
-Write-Host ""
-Write-Host ""
-Write-Host ""
-Write-Host ""
-Write-Host ""
-Write-Host ""
-Write-Host "*******************************************************************************"
-Write-Host "  Starting Handbrake Batch Encoding"
-Write-Host "   Process-HandbrakeBatcher by Paul Turpie" $PSCommandPath
-Write-Host "   $($FileList.Count) files to be processed"
-Write-Host "*******************************************************************************"
+    Write-Host ""
+    Write-Host ""
+    Write-Host ""
+    Write-Host ""
+    Write-Host ""
+    Write-Host ""
+    Write-Host ""
+    Write-Host "*******************************************************************************"
+    Write-Host "  Starting Handbrake Batch Encoding"
+    Write-Host "   Process-HandbrakeBatcher by Paul Turpie" $PSCommandPath
+    Write-Host "   $($FileList.Count) files to be processed"
+    Write-Host "*******************************************************************************"
 
-while ($null -ne $FileList) {
-    $FileToProcess = Get-ChildItem -LiteralPath (Get-Content $FileList[0].FullName)
-    $totalFiles = $filecount + $FileList.Count
-    $filecount++
+    while ($null -ne $FileList) {
+        $FileToProcess = Get-ChildItem -LiteralPath (Get-Content $FileList[0].FullName)
+        $totalFiles = $filecount + $FileList.Count
+        $filecount++
 
-    $SourceFile = $FileToProcess.FullName
-    $DestinationFile = (Join-Path -Path $DestinationPath -ChildPath ($FileToProcess.BaseName)) + ".mp4"
+        $SourceFile = $FileToProcess.FullName
+        $DestinationFile = (Join-Path -Path $DestinationPath -ChildPath ($FileToProcess.BaseName)) + ".mp4"
 
-    # Check current time and run the Night profile for higher performance
-    $currentTime = Get-Date
-    $currentPreset = $PresetFileHighCPU
-    switch ($CPUMode) {
-        "Low" { $currentPreset = $PresetFileLowCPU }
-        "High" { $currentPreset = $PresetFileHighCPU }
-        "HighLow" {
-            if (($currentTime.Hour -lt 23) -and ($currentTime.Hour -ge 6)) {
-                $currentPreset = $PresetFileLowCPU 
-            }
-        }    
-        "Sleep" {  
-            if (($currentTime.Hour -lt 23) -and ($currentTime.Hour -ge 6)) {
-                $processingStartTime = Get-Date -Hour 23 -Minute 59 -Second 0
-                Start-SleepUntil ($processingStartTime)
+        # Check current time and run the Night profile for higher performance
+        $currentTime = Get-Date
+        $currentPreset = $PresetFileHighCPU
+        switch ($CPUMode) {
+            "Low" { $currentPreset = $PresetFileLowCPU }
+            "High" { $currentPreset = $PresetFileHighCPU }
+            "HighLow" {
+                if (($currentTime.Hour -lt 23) -and ($currentTime.Hour -ge 6)) {
+                    $currentPreset = $PresetFileLowCPU 
+                }
             }    
+            "Sleep" {  
+                if (($currentTime.Hour -lt 23) -and ($currentTime.Hour -ge 6)) {
+                    $processingStartTime = Get-Date -Hour 23 -Minute 00 -Second 0
+                    Start-SleepUntil ($processingStartTime)
+                }    
+            }
         }
-    }
 
-    Write-Progress -Id 0 -Activity "Handbrake Batch Video Conversion in Progress" -Status "Processed $filecount of $totalFiles" -PercentComplete ($filecount / $totalFiles * 100)
-    Write-Host "-------------------------------------------------------------------------------"
-    Write-Host "  Queue file: " $FileList[0]
-    Write-Host "  Processing - $SourceFile"
-    Write-Host "   to        - $DestinationFile"
-    Write-Host "Processed $filecount files"
-    Write-Host "          $($FileList.Count - 1) files remaining"
-    Write-Host "-------------------------------------------------------------------------------"
-    #TODO Validate the destination file before removing queuefile
-    #      maybe move queuefile to a new directory
-    if (Test-Path -Path $DestinationFile) {
-        $MediaInfo = Get-MediaInfo -Path $DestinationFile
-        if ( $MediaInfo.Duration -gt 0) {
-            # Destination File exists and seems to be a valid video file, so delete the queue file.
-            Add-Content -Path (Join-Path -Path $LogPath -ChildPath "Completed.log") -Value (Get-Content -Path $FileList[0].FullName)
+        Write-Progress -Id 0 -Activity "Handbrake Batch Video Conversion in Progress" -Status "Processed $filecount of $totalFiles" -PercentComplete ($filecount / $totalFiles * 100)
+        Write-Host "-------------------------------------------------------------------------------"
+        Write-Host "  Queue file: " $FileList[0]
+        Write-Host "  Processing - $SourceFile"
+        Write-Host "   to        - $DestinationFile"
+        Write-Host "Processed $filecount files"
+        Write-Host "          $($FileList.Count - 1) files remaining"
+        Write-Host "-------------------------------------------------------------------------------"
+        #TODO Validate the destination file before removing queuefile
+        #      maybe move queuefile to a new directory
+        if (Test-Path -Path $DestinationFile) {
+            $MediaInfo = Get-MediaInfo -Path $DestinationFile
+            if ( $MediaInfo.Duration -gt 0) {
+                # Destination File exists and seems to be a valid video file, so delete the queue file.
+                Add-Content -Path (Join-Path -Path $LogPath -ChildPath "Completed.log") -Value (Get-Content -Path $FileList[0].FullName)
+            }
+            else {
+                # Destination file seems invalid so delete it and keep queue file to try again later.
+                Remove-Item $DestinationFile
+            }
+        }
+        &$HandBrakeExe --preset-import-file $currentPreset -Z $PresetName -i "$SourceFile" -o "$DestinationFile" 2>(Join-Path -Path $LogPath -ChildPath "Error.log") | Get-HandbrakeProgress
+
+
+        #TODO Validate the destination file before removing queuefile
+        #      maybe move queuefile to a new directory
+        if (Test-Path -Path $DestinationFile) {
+            $MediaInfo = Get-MediaInfo -Path $DestinationFile
+            if ( $MediaInfo.Duration -gt 0) {
+                # Destination File exists and seems to be a valid video file, so delete the queue file.
+                Add-Content -Path (Join-Path -Path $LogPath -ChildPath "Completed.log") -Value (Get-Content -Path $FileList[0].FullName)
+                Write-Host "Processing completed, removing queue file."
+                Remove-Item $FileList[0].FullName
+            }
+            else {
+                # Destination file seems invalid so delete it and keep queue file to try again later.
+                Write-Host "Destination file seems invalid so delete it and keep queue file to try again later."
+                Write-Host "  DestinationFile name=" $DestinationFile
+                Write-Host "  Queue filename: " $FileList[0].FullName
+                Write-Host "  Original Lastwritetime:" (Get-Item -Path $FileList[0].FullName).LastWriteTime
+                Remove-Item $DestinationFile
+            (Get-Item -Path $FileList[0].FullName).LastWriteTime = Get-Date
+                Write-Host "  New Lastwritetime:" (Get-Item -Path $FileList[0].FullName).LastWriteTime
+                Move-Item -Path $FileList[0].FullName -Destination $QueueRejectsPath
+            }
         }
         else {
-            # Destination file seems invalid so delete it and keep queue file to try again later.
-            Remove-Item $DestinationFile
-        }
-    }
-    &$HandBrakeExe --preset-import-file $currentPreset -Z $PresetName -i "$SourceFile" -o "$DestinationFile" 2>(Join-Path -Path $LogPath -ChildPath "Error.log") | Get-HandbrakeProgress
-
-
-    #TODO Validate the destination file before removing queuefile
-    #      maybe move queuefile to a new directory
-    if (Test-Path -Path $DestinationFile) {
-        $MediaInfo = Get-MediaInfo -Path $DestinationFile
-        if ( $MediaInfo.Duration -gt 0) {
-            # Destination File exists and seems to be a valid video file, so delete the queue file.
-            Add-Content -Path (Join-Path -Path $LogPath -ChildPath "Completed.log") -Value (Get-Content -Path $FileList[0].FullName)
-            Write-Host "Processing completed, removing queue file."
-            Remove-Item $FileList[0].FullName
-        }
-        else {
-            # Destination file seems invalid so delete it and keep queue file to try again later.
-            Write-Host "Destination file seems invalid so delete it and keep queue file to try again later."
+            Write-Host "************* where did the destination file go!!!!!!!!!!!!!!!!!!!! *************"
             Write-Host "  DestinationFile name=" $DestinationFile
             Write-Host "  Queue filename: " $FileList[0].FullName
             Write-Host "  Original Lastwritetime:" (Get-Item -Path $FileList[0].FullName).LastWriteTime
-            Remove-Item $DestinationFile
-            (Get-Item -Path $FileList[0].FullName).LastWriteTime = Get-Date
+        (Get-Item -Path $FileList[0].FullName).LastWriteTime = Get-Date
             Write-Host "  New Lastwritetime:" (Get-Item -Path $FileList[0].FullName).LastWriteTime
             Move-Item -Path $FileList[0].FullName -Destination $QueueRejectsPath
         }
+        # Refresh the FileList incase more files have been queued.
+        $FileList = Get-ChildItem -Path $QueuePath | Sort-Object LastWriteTime
     }
-    else {
-        Write-Host "************* where did the destination file go!!!!!!!!!!!!!!!!!!!! *************"
-        Write-Host "  DestinationFile name=" $DestinationFile
-        Write-Host "  Queue filename: " $FileList[0].FullName
-        Write-Host "  Original Lastwritetime:" (Get-Item -Path $FileList[0].FullName).LastWriteTime
-        (Get-Item -Path $FileList[0].FullName).LastWriteTime = Get-Date
-        Write-Host "  New Lastwritetime:" (Get-Item -Path $FileList[0].FullName).LastWriteTime
-        Move-Item -Path $FileList[0].FullName -Destination $QueueRejectsPath
-    }
-    # Refresh the FileList incase more files have been queued.
-    $FileList = Get-ChildItem -Path $QueuePath | Sort-Object LastWriteTime
-}
 
-Write-Host ""
-Write-Host ""
-Write-Host ""
-Write-Host ""
-Write-Host ""
-Write-Host ""
-Write-Host ""
-Write-Host "*******************************************************************************"
-Write-Host "  Completed Handbrake Batch Encoding"
-Write-Host "   Process-HandbrakeBatcher by Paul Turpie"
-Write-Host "   $($totalFiles) files were processed"
-Write-Host "*******************************************************************************"
+    Write-Host ""
+    Write-Host ""
+    Write-Host ""
+    Write-Host ""
+    Write-Host ""
+    Write-Host ""
+    Write-Host ""
+    Write-Host "*******************************************************************************"
+    Write-Host "  Completed Handbrake Batch Encoding"
+    Write-Host "   Process-HandbrakeBatcher by Paul Turpie"
+    Write-Host "   $($totalFiles) files were processed"
+    Write-Host "*******************************************************************************"
+    if (-not $DaemonMode) {
+        break
+    }
+
+    Write-Host "Waiting for new files..."
+    Start-Sleep -Seconds 60
+} while ($DaemonMode)
 
 Pause
