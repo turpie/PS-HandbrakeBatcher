@@ -17,13 +17,13 @@ function Queue-File {
     Write-Host "Queueing:" $FileToQueue
     #$FileToQueue | Out-File -FilePath (Join-Path -Path $QueuePath -ChildPath (Split-Path -Path $FileToQueue -Leaf))
     # Filenames were containing wildcards that Out-File complained about, using hash of filename instead.
-    $HashedFilename = (Get-FileHash -InputStream ([IO.MemoryStream]::new([byte[]][char[]]$FileToQueue)) -Algorithm SHA256).Hash
+    $HashedFilename = (Get-FileHash -InputStream ([IO.MemoryStream]::new([System.Text.Encoding]::UTF8.GetBytes($FilteredFilename))) -Algorithm SHA256).Hash
     $FileToQueue | Out-File -FilePath (Join-Path -Path $QueuePath -ChildPath $HashedFilename)
     
 }
 
 $videoExtensions = @(".mp4", ".mkv", ".avi", ".mov", ".wmv")      
-$FilePath | ForEach-Object{
+$FilePath | ForEach-Object {
     "Checking: $_"
     # if the file is a directory, queue all files in the directory
     if (Test-Path -Path $_ -PathType Container) {
@@ -37,7 +37,8 @@ $FilePath | ForEach-Object{
         "Queueing file $_"
         if ($videoExtensions -contains (Get-ChildItem -LiteralPath $_).Extension) {
             Queue-File -FileToQueue $_
-        }else{
+        }
+        else {
             Write-Host "File $_ is not a video file, skipping." (Get-ChildItem -LiteralPath $_).Extension "_"
         }
     }
