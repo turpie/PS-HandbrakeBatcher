@@ -80,7 +80,7 @@ do {
 
     if ($FileList.Count -eq 0) {
         if ($DaemonMode) {
-            Write-Host "No files found in the queue. Waiting for new files..."
+            Write-Host "$(get-date -Format "HH:mm:ss"): No files found in the queue. Waiting for new files..."
             Start-Sleep -Seconds 60
             continue
         }
@@ -152,7 +152,10 @@ do {
             }
         }
         &$HandBrakeExe --preset-import-file $currentPreset -Z $PresetName -i "$SourceFile" -o "$DestinationFile" 2>(Join-Path -Path $LogPath -ChildPath "Error.log") | Get-HandbrakeProgress
-
+        Write-Progress -Id 1 -Activity "   Currently $status $SourceFile"`
+            -Status "Completed processing $SourceFile"`
+            -PercentComplete 100 `
+            -Completed
 
         #TODO Validate the destination file before removing queuefile
         #      maybe move queuefile to a new directory
