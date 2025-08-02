@@ -44,4 +44,3 @@ $FilePath | ForEach-Object {
         }
     }
 } 
-pause
