@@ -17,7 +17,7 @@ function Queue-File {
     Write-Host "Queueing:" $FileToQueue
     #$FileToQueue | Out-File -FilePath (Join-Path -Path $QueuePath -ChildPath (Split-Path -Path $FileToQueue -Leaf))
     # Filenames were containing wildcards that Out-File complained about, using hash of filename instead.
-    $HashedFilename = (Get-FileHash -InputStream ([IO.MemoryStream]::new([System.Text.Encoding]::UTF8.GetBytes($FilteredFilename))) -Algorithm SHA256).Hash
+    $HashedFilename = (Get-FileHash -InputStream ([IO.MemoryStream]::new([System.Text.Encoding]::UTF8.GetBytes($FileToQueue))) -Algorithm SHA256).Hash
     $FileToQueue | Out-File -FilePath (Join-Path -Path $QueuePath -ChildPath $HashedFilename)
     
 }
@@ -25,21 +25,23 @@ function Queue-File {
 $videoExtensions = @(".mp4", ".mkv", ".avi", ".mov", ".wmv")      
 $FilePath | ForEach-Object {
     "Checking: $_"
+    $escapedFilePath =  ([Management.Automation.WildcardPattern]::Escape($_))
     # if the file is a directory, queue all files in the directory
-    if (Test-Path -Path $_ -PathType Container) {
+    if (Test-Path -LiteralPath $_ -PathType Container) {
         "Queueing all files in directory $_"
         # only queue video files
-        Get-ChildItem -Path $_ -Recurse -File | Where-Object { $videoExtensions -contains $_.Extension } | ForEach-Object {
+        Get-ChildItem -LiteralPath $_ -Recurse -File | Where-Object { $videoExtensions -contains $_.Extension } | ForEach-Object {
             Queue-File -FileToQueue $_.FullName
         }
     }
     else {
         "Queueing file $_"
         if ($videoExtensions -contains (Get-ChildItem -LiteralPath $_).Extension) {
-            Queue-File -FileToQueue $_
+            Queue-File -FileToQueue $escapedFilePath
         }
         else {
             Write-Host "File $_ is not a video file, skipping." (Get-ChildItem -LiteralPath $_).Extension "_"
         }
     }
 } 
+pause
