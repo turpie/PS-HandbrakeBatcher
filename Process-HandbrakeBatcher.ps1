@@ -1,6 +1,6 @@
 param(
     [ValidateSet("Sleep", "HighLow", "Low", "High")]
-    [string[]]$CPUMode = "Sleep",
+    [string[]]$CPUMode = "Low",
     [string]$QueuePath = "C:\Scripts\HandBrakeBatcher\Queue",
     [string]$QueueRejectsPath = "C:\Scripts\HandBrakeBatcher\QueueRejects",
     [string]$LogPath = "C:\Scripts\HandBrakeBatcher\Logs",
@@ -37,7 +37,7 @@ function Start-SleepUntil($waketime) {
     }
     Write-Progress -Activity "Sleeping" -Status "Waking up... " -SecondsRemaining 0 -Completed
 }
-Function Get-HandbrakeProgress {
+function Get-HandbrakeProgress {
     param(
         [Parameter(Mandatory, ValueFromPipeline)]
         $InputObject
@@ -54,16 +54,16 @@ Function Get-HandbrakeProgress {
     
         $data = $InputObject -split ' '
     
-        If (![String]::IsNullOrEmpty("$($data[0])")) {
+        if (![String]::IsNullOrEmpty("$($data[0])")) {
             $status = ($data[0]).Split(':')[0]
         }
-        If (![String]::IsNullOrEmpty("$($data[5])")) {
+        if (![String]::IsNullOrEmpty("$($data[5])")) {
             $percent = $data[5]
         }
-        If (![String]::IsNullOrEmpty("$($data[10])")) {
+        if (![String]::IsNullOrEmpty("$($data[10])")) {
             $fps = $data[10]
         }
-        If (![String]::IsNullOrEmpty("$($data[13])")) {
+        if (![String]::IsNullOrEmpty("$($data[13])")) {
             $ETA = ($data[13]).Split(')')[0]
         }
     
@@ -81,7 +81,7 @@ do {
 
     if ($FileList.Count -eq 0) {
         if ($DaemonMode) {
-            Write-Host "$(get-date -Format "HH:mm:ss"): No files found in the queue. Waiting for new files..."
+            Write-Host "$(Get-Date -Format "HH:mm:ss"): No files found in the queue. Waiting for new files..."
             Start-Sleep -Seconds 60
             continue
         }
@@ -216,7 +216,7 @@ do {
                 Write-Host "  Queue filename: " $FileList[0].FullName
                 Write-Host "  Original Lastwritetime:" (Get-Item -Path $FileList[0].FullName).LastWriteTime
                 Remove-Item $DestinationFile
-            (Get-Item -Path $FileList[0].FullName).LastWriteTime = Get-Date
+                (Get-Item -Path $FileList[0].FullName).LastWriteTime = Get-Date
                 Write-Host "  New Lastwritetime:" (Get-Item -Path $FileList[0].FullName).LastWriteTime
                 Move-Item -Path $FileList[0].FullName -Destination $QueueRejectsPath
             }
@@ -226,7 +226,7 @@ do {
             Write-Host "  DestinationFile name=" $DestinationFile
             Write-Host "  Queue filename: " $FileList[0].FullName
             Write-Host "  Original Lastwritetime:" (Get-Item -Path $FileList[0].FullName).LastWriteTime
-        (Get-Item -Path $FileList[0].FullName).LastWriteTime = Get-Date
+            (Get-Item -Path $FileList[0].FullName).LastWriteTime = Get-Date
             Write-Host "  New Lastwritetime:" (Get-Item -Path $FileList[0].FullName).LastWriteTime
             Move-Item -Path $FileList[0].FullName -Destination $QueueRejectsPath
         }
