@@ -1,6 +1,7 @@
 logs/*
 temp/*
 Queue/*
+QueueRejects/*
 HandBrakeCLI/*
 HandBrakeCLI.zip
-QueueRejects/*
+mkvtoolnix/*
