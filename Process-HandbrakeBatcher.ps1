@@ -6,6 +6,7 @@ param(
     [string]$LogPath = "C:\Scripts\HandBrakeBatcher\Logs",
     [string]$DestinationPath = "D:\Conversions",
     [string]$HandBrakeExe = "C:\Scripts\HandBrakeBatcher\HandBrakeCLI\HandBrakeCLI.exe",
+    [string]$mkvmergeExe = "C:\Scripts\HandBrakeBatcher\mkvtoolnix\mkvmerge.exe",
     [string]$PresetFileLowCPU = "C:\Scripts\HandBrakeBatcher\H265HandbrakePresetLowCPU.json",
     [string]$PresetFileHighCPU = "C:\Scripts\HandBrakeBatcher\H265HandbrakePresetHighCPU.json",
     [string]$PresetName = "Apple1080pHEVCq38",
@@ -151,7 +152,48 @@ do {
                 Remove-Item $DestinationFile
             }
         }
-        &$HandBrakeExe --preset-import-file $currentPreset -Z $PresetName -i "$SourceFile" -o "$DestinationFile" 2>(Join-Path -Path $LogPath -ChildPath "Error.log") | Get-HandbrakeProgress
+
+        ####################################################################
+        # Clean up subtitles to avoid issues with PGS subtitles 
+        $cleanedVideo = (Join-Path -Path $PSScriptRoot -ChildPath "temp\SubtitleFixed.mkv")
+
+        # Get track info
+        $SubTitleIdentification = &$mkvmergeExe --identify "$SourceFile"
+
+        # Check if there are *any* PGS (HDMV PGS) tracks
+        $pgsTracks = foreach ($line in $SubTitleIdentification) {
+            if ($line -match 'Track ID (\d+): subtitles \(HDMV PGS\)') {
+                $matches[1]
+            }
+        }
+        # If PGS tracks found, remux to remove them
+        if ($pgsTracks.Count -gt 0) {
+            Write-Host "PGS subtitles found: $($pgsTracks -join ', ')"
+
+            # Find subtitle tracks that are NOT PGS
+            $keepSubIDs = foreach ($line in $SubTitleIdentification) {
+                if ($line -match 'Track ID (\d+): subtitles \((?!HDMV PGS).+\)') {
+                    $matches[1]
+                }
+            }
+
+            # Build subtitle track argument
+            if ($keepSubIDs.Count -gt 0) {
+                $subTrackArg = "--subtitle-tracks " + ($keepSubIDs -join ",")
+            }
+            else {
+                $subTrackArg = "--no-subtitles"
+            }
+
+            # Remux
+            &$mkvmergeExe -o "$cleanedVideo" $subTrackArg "$SourceFile"
+
+            # Use the cleaned video as source for Handbrake
+            $SourceFile = $cleanedVideo
+        }
+        ####################################################################
+
+        &$HandBrakeExe --preset-import-file $currentPreset -Z $PresetName -i $SourceFile -o "$DestinationFile" 2>(Join-Path -Path $LogPath -ChildPath "Error.log") | Get-HandbrakeProgress
         Write-Progress -Id 1 -Activity "   Currently $status $SourceFile"`
             -Status "Completed processing $SourceFile"`
             -PercentComplete 100 `
